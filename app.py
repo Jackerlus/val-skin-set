@@ -2,71 +2,121 @@ import sys
 import requests
 import json
 from PySide6.QtCore import QStringListModel, Qt
-from PySide6.QtWidgets import (QApplication, QGridLayout, QSplitter, QWidget, QLabel,
-                                QVBoxLayout, QHBoxLayout, QTextEdit, QListView,
-                                QGridLayout)
-from SkinGrid import SkinGrid
+from PySide6.QtWidgets import (QApplication, QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QListView, QSplitter)
+from skin_grid import SkinGrid
 
 class SkinSetter(QWidget):
-    def __init__(self, screen_size, width, height):
+    def __init__(self, screen_size):
         super().__init__()
-
-        self.app_width = width
-        self.app_height = height
 
         # Get all skin data
         self.all_skins = self.get_all_skins()
-        print(json.dumps(self.all_skins, indent=4))
 
         # Create parent window layout
         layout = QHBoxLayout(self)
         self.setLayout(layout)
-        self.setWindowTitle('Skin Setter')
+        self.setWindowTitle('SkinSet')
 
         # Create category list menu widget
-        categories_list = QListView()
-        list_items = ["Vandal", "Phantom", "Guardian"]
+        self.categories_list = QListView()
+        self.list_items = [
+            'Classic', 'Shorty', 'Frenzy', 'Ghost', 'Sheriff',
+            'Stinger', 'Spectre',
+            'Bucky', 'Judge',
+            'Bulldog', 'Guardian', 'Phantom', 'Vandal',
+            'Marshal', 'Outlaw', 'Operator',
+            'Ares', 'Odin',
+            'Melee'
+        ]
         model = QStringListModel()
-        model.setStringList(list_items)
-        categories_list.setModel(model)
+        model.setStringList(self.list_items)
+        self.categories_list.setModel(model)
+        self.categories_list.clicked.connect(self.list_item_clicked)
 
         # Create left menu layout
         left_layout = QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(categories_list)
+        left_layout.addWidget(self.categories_list)
 
         # Create categories menu
         left_categories_menu = QWidget()
         left_categories_menu.setLayout(left_layout)
-        left_categories_menu.setMaximumWidth(int(screen_size.width() * 0.25))
 
         # Create skin grid view widget
-        skin_grid = SkinGrid(self.all_skins['HMG'])
+        skin_grid = SkinGrid(self.all_skins['Luger'])
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.horizontalScrollBar().setEnabled(False)
+        self.scroll_area.horizontalScrollBar().setHidden(True)
+        self.scroll_area.setWidget(skin_grid)
 
         # Create right main view layout
         right_layout = QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.addWidget(skin_grid)
+        right_layout.addWidget(self.scroll_area)
 
         # Create equippable select main view
         right_main_view = QWidget()
         right_main_view.setLayout(right_layout)
-        right_main_view.setMaximumWidth(int(screen_size.width() * 0.75))
 
         # Create the main widget area with QSplitter
         main_area = QSplitter(orientation=Qt.Horizontal)
         layout.addWidget(main_area)
         main_area.addWidget(left_categories_menu)
         main_area.addWidget(right_main_view)
-        main_area.setStretchFactor(0, 1)  # Set the stretch factor for left side
-        main_area.setStretchFactor(1, 3)  # Set the stretch factor for right side
+        main_area.setStretchFactor(1, 3) # Set left:right space ratio
 
-    def get_current_loadout(self):
-        return
+    def list_item_clicked(self, index):
+        item_text = self.categories_list.model().data(index, Qt.DisplayRole)
+        print(f'Selected item: {item_text}')
+
+        # Convert list text to internal weapon code
+        type = ''
+        match item_text:
+            case 'Classic':
+                type = 'BasePistol'
+            case 'Shorty':
+                type = 'Slim'
+            case 'Frenzy':
+                type = 'AutoPistol'
+            case 'Ghost':
+                type = 'Luger'
+            case 'Sheriff':
+                type = 'Revolver'
+            case 'Stinger':
+                type = 'Vector'
+            case 'Spectre':
+                type = 'MP5'
+            case 'Bucky':
+                type = 'PumpShotgun'
+            case 'Judge':
+                type = 'AutoShotgun'
+            case 'Bulldog':
+                type = 'Burst'
+            case 'Guardian':
+                type = 'DMR'
+            case 'Phantom':
+                type = 'Carbine'
+            case 'Vandal':
+                type = 'AK'
+            case 'Marshal':
+                type = 'Leversniper'
+            case 'Outlaw':
+                type = 'Doublesniper'
+            case 'Operator':
+                type = 'Boltsniper'
+            case 'Ares':
+                type = 'LMG'
+            case 'Odin':
+                type = 'HMG'
+            case 'Melee':
+                type = 'Melee'
+
+        self.scroll_area.setWidget(SkinGrid(self.all_skins[type]))
 
     def get_all_skins(self):
         # Request VALORANT weapon skins from API
-        response = requests.get("https://valorant-api.com/v1/weapons/skins")
+        response = requests.get('https://valorant-api.com/v1/weapons/skins')
         output = response.content
         data = json.loads(output)['data']
 
@@ -81,7 +131,8 @@ class SkinSetter(QWidget):
             formattedItem = {}
             formattedItem['name'] = item['displayName']
             formattedItem['uuid'] = item['uuid']
-            formattedItem['image'] = item['displayIcon']
+            formattedItem['image'] = item['chromas'][0]['fullRender']
+            formattedItem['type'] = type
 
             if type not in skins:
                 skins[type] = []
@@ -99,7 +150,7 @@ if __name__ == "__main__":
     width = 1200
     height = 800
 
-    widget = SkinSetter(screen_size, width, height)
+    widget = SkinSetter(screen_size)
     widget.resize(width, height)
     widget.show()
 

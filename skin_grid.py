@@ -13,36 +13,33 @@ class SkinGrid(QWidget):
         self.setLayout(layout)
 
         for index, skin in enumerate(skin_data):
-            print(skin)
-            img = self.get_image_from_url(skin['image'])
+            img = None
+            try:
+                img = QPixmap(f'skins/{skin['type']}/{skin['name'].replace('/', ':')}.png')
+            except Exception as e:
+                print(f'Failed to load {skin['name']}.png from path skins/{skin['type']}')
+
             button = QToolButton()
             button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             button.setText(skin['name'])
+
             if img:
                 button.setLayout(QVBoxLayout())
                 button.setIcon(QIcon(img))
                 button.setIconSize(img.size())
-                button.setMinimumWidth(int(self.width()*0.7))
+                button.setMinimumWidth(int(self.width()*0.5))
 
             # Calculate the row and column position
             row = index // 2  # Adjust the number of columns as needed
             col = index % 2
             layout.addWidget(button, row, col)
 
-    def get_image_from_url(self, url):
+    def download_image_from_url(self, url, name, type):
         try:
             with urllib.request.urlopen(url) as open_url:
                 img_data = open_url.read()
-            image = Image.open(BytesIO(img_data))
-
-            # Convert PIL image to QImage
-            image = image.convert("RGBA")
-            data = image.tobytes("raw", "RGBA")
-            qimage = QImage(data, image.width, image.height, QImage.Format_RGBA8888)
-
-            # Convert QImage to QPixmap
-            pixmap = QPixmap.fromImage(qimage)
-            return pixmap
+                with open(f'skins/{type}/{name}.png', 'wb') as handler:
+                        handler.write(img_data)
         except Exception as e:
             print(f"Failed to load image from {url}: {e}")
             return None
