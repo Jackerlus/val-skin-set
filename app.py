@@ -148,9 +148,17 @@ class SkinSetter(QWidget):
 
             for chroma in item['chromas']:
                 formatted_chroma = {}
-                formatted_chroma['skin-name'] =  item['displayName']
+
+                if item['displayName'][-1] == ' ':
+                    formatted_chroma['skin-name'] =  item['displayName'][:-1]
+                else:
+                    formatted_chroma['skin-name'] =  item['displayName']
+                if chroma['displayName'][-1] == ' ':
+                    formatted_chroma['chroma-name'] = chroma['displayName'][:-1]
+                else:
+                    formatted_chroma['chroma-name'] = chroma['displayName']
+
                 formatted_chroma['skin-uuid'] = item['uuid']
-                formatted_chroma['chroma-name'] = chroma['displayName']
                 formatted_chroma['chroma-uuid'] = chroma['uuid']
                 formatted_chroma['image-url'] = chroma['fullRender']
                 formatted_chroma['type'] = type
