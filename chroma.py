@@ -9,8 +9,8 @@ class Chroma:
     def __init__(self, chroma_data):
         self.skin_name = chroma_data['skin-name']
         self.chroma_name = chroma_data['chroma-name']
-        self.sanitised_skin_name = self.skin_name.replace('/', '_').replace('Ø', 'O').replace(':', '')
-        self.sanitised_chroma_name = self.chroma_name.replace('/', '_').replace('\r', '').replace('\n', ' ').replace('Ø', 'O').replace(':', '')
+        self.sanitised_skin_name = self.skin_name.replace('/', '_').replace('Ø', 'O').replace(':', '').replace('.', '').replace('!', '')
+        self.sanitised_chroma_name = self.chroma_name.replace('/', '_').replace('\r', '').replace('\n', ' ').replace('Ø', 'O').replace(':', '').replace('.', '').replace('!', '')
         self.skin_uuid = chroma_data['skin-uuid']
         self.chroma_uuid = chroma_data['chroma-uuid']
         self.image_url = chroma_data['image-url']
