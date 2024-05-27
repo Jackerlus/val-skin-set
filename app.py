@@ -2,12 +2,22 @@ import sys
 import requests
 import json
 from PySide6.QtCore import QStringListModel, Qt
-from PySide6.QtWidgets import (QApplication, QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QListView, QSplitter)
+from PySide6.QtWidgets import (QApplication, QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QListView, QSplitter, QStyledItemDelegate)
 from skin_grid import SkinGrid
+from loadout import Loadout
+
+class NonEditableStringListModel(QStringListModel):
+    def flags(self, index):
+        # Set the item flags to make them non-editable
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 class SkinSetter(QWidget):
     def __init__(self, screen_size):
         super().__init__()
+
+        # Initialise working loadout
+        self.loadout = Loadout()
+        print(f'Initialised loadout {self.loadout.name}')
 
         # Get all skin data
         self.all_skins = self.get_all_skins()
@@ -20,6 +30,7 @@ class SkinSetter(QWidget):
         # Create category list menu widget
         self.categories_list = QListView()
         self.list_items = [
+            'Loadout',
             'Classic', 'Shorty', 'Frenzy', 'Ghost', 'Sheriff',
             'Stinger', 'Spectre',
             'Bucky', 'Judge',
@@ -28,9 +39,10 @@ class SkinSetter(QWidget):
             'Ares', 'Odin',
             'Melee'
         ]
-        model = QStringListModel()
-        model.setStringList(self.list_items)
-        self.categories_list.setModel(model)
+        self.menu_model = NonEditableStringListModel(self.list_items)
+        self.categories_list.setItemDelegate(QStyledItemDelegate(None))
+        #self.menu_model.setStringList(self.list_items)
+        self.categories_list.setModel(self.menu_model)
         self.categories_list.clicked.connect(self.list_item_clicked)
 
         # Create left menu layout
@@ -43,7 +55,7 @@ class SkinSetter(QWidget):
         left_categories_menu.setLayout(left_layout)
 
         # Create skin grid view widget
-        skin_grid = SkinGrid(self.all_skins['Luger'])
+        skin_grid = SkinGrid(self.loadout.skins, loadout=True) # Shows the loadout view by default
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.horizontalScrollBar().setEnabled(False)
@@ -73,6 +85,8 @@ class SkinSetter(QWidget):
         # Convert list text to internal weapon code
         type = ''
         match item_text:
+            case 'Loadout':
+                type = 'Loadout'
             case 'Classic':
                 type = 'BasePistol'
             case 'Shorty':
@@ -112,7 +126,10 @@ class SkinSetter(QWidget):
             case 'Melee':
                 type = 'Melee'
 
-        self.scroll_area.setWidget(SkinGrid(self.all_skins[type]))
+        if type == 'Loadout':
+            self.scroll_area.setWidget(SkinGrid(self.loadout.skins, loadout=True))
+        else:
+            self.scroll_area.setWidget(SkinGrid(self.all_skins[type]))
 
     def get_all_skins(self):
         # Request VALORANT weapon skins from API
@@ -128,17 +145,21 @@ class SkinSetter(QWidget):
                 type = asset_path[5] # Gun type name, e.g. Ares
             else:
                 type = 'Melee'
-            formattedItem = {}
-            formattedItem['name'] = item['displayName']
-            formattedItem['uuid'] = item['uuid']
-            formattedItem['image'] = item['chromas'][0]['fullRender']
-            formattedItem['type'] = type
 
-            if type not in skins:
-                skins[type] = []
+            for chroma in item['chromas']:
+                formatted_chroma = {}
+                formatted_chroma['skin-name'] =  item['displayName']
+                formatted_chroma['skin-uuid'] = item['uuid']
+                formatted_chroma['chroma-name'] = chroma['displayName']
+                formatted_chroma['chroma-uuid'] = chroma['uuid']
+                formatted_chroma['image-url'] = chroma['fullRender']
+                formatted_chroma['type'] = type
 
-            # Add skin to new reformatted weapon skins object
-            skins[type].append(formattedItem)
+                if type not in skins:
+                    skins[type] = []
+
+                # Add chroma to new reformatted weapon skins object
+                skins[type].append(formatted_chroma)
 
         return skins
 
